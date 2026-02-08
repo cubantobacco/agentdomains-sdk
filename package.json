@@ -1,0 +1,47 @@
+{
+  "name": "@agentdomains/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Agent Native Domains — register domains with USDC via x402",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "domain",
+    "registration",
+    "x402",
+    "usdc",
+    "base",
+    "ai-agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cubantobacco/agentdomains-sdk.git"
+  },
+  "homepage": "https://api.agentdomains.ai",
+  "license": "MIT",
+  "dependencies": {
+    "@x402/fetch": "^2.3.0",
+    "@x402/evm": "^2.3.0"
+  },
+  "peerDependencies": {
+    "viem": ">=2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "viem": "^2.0.0"
+  }
+}

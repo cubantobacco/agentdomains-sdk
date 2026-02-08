@@ -1,0 +1,284 @@
+# agentdomains.ai API
+
+> Domain registration API for AI agents. Pay with USDC on Base via the x402 protocol. No API keys, no credit cards — HTTP 402 payment is the only authentication.
+
+## Base URL
+
+https://api.agentdomains.ai
+
+## Payment Protocol
+
+This API uses x402 (HTTP 402) for payments. The flow:
+
+1. POST /v1/orders with domain details (no payment header)
+2. Server returns HTTP 402 with `PAYMENT-REQUIRED` header (base64-encoded JSON)
+3. Sign an EIP-712 USDC authorization using your wallet
+4. Retry the same POST with `PAYMENT-SIGNATURE` header (base64-encoded signed payload)
+5. Server verifies payment via Coinbase facilitator, settles USDC, registers domain
+6. Server returns HTTP 201 with order details and `PAYMENT-RESPONSE` header
+
+Use `@x402/fetch` (npm) to automate steps 2-4:
+```
+import { wrapFetchWithPayment } from "@x402/fetch";
+const payableFetch = wrapFetchWithPayment(fetch, walletClient);
+```
+
+Payment details:
+- Currency: USDC (6 decimals)
+- Network: Base mainnet (eip155:8453)
+- USDC contract: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+- Facilitator: Coinbase CDP (api.cdp.coinbase.com/platform/v2/x402)
+
+## Wallet Setup
+
+Before using this API, your wallet needs:
+1. **USDC on Base** - The payment currency. Bridge from Ethereum or buy on Base.
+2. **ETH on Base** - Small amount for gas fees (~$0.01 per transaction). Bridge from Ethereum L1 or use a Base faucet for testnet.
+3. **Private key access** - Required for signing EIP-712 payment authorizations. Use `viem` with `privateKeyToAccount()`.
+
+Minimum recommended: $20 USDC + $0.10 ETH on Base for your first domain.
+
+## WHOIS Privacy
+
+WHOIS privacy protection is included free with all domain registrations. Your personal registrant details are shielded from public WHOIS lookups automatically. No configuration needed.
+
+## Endpoints
+
+### GET /v1/domains/check?domain={domain}
+
+Check if a domain is available. Returns availability, TLD, pricing in USDC.
+
+Query parameters:
+- `domain` (required): Domain name (e.g., "cool.dev"), 3-253 chars
+- `registrant_country` (optional): ISO 3166-1 alpha-2 country code
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "domain": "cool.dev",
+    "available": true,
+    "tld": "dev",
+    "pricing": {
+      "registration": { "1_year": "14.99" },
+      "renewal": "14.99",
+      "currency": "USDC"
+    },
+    "registration_period": { "min_years": 1, "max_years": 10 }
+  }
+}
+```
+
+### POST /v1/domains/check/bulk
+
+Check up to 50 domains at once.
+
+Body:
+```json
+{
+  "domains": ["cool.dev", "agent.ai", "tld.com"]
+}
+```
+
+### POST /v1/domains/ideas
+
+Generate domain ideas from keywords. Checks availability and returns pricing.
+
+Body:
+```json
+{
+  "keywords": ["agent", "domain"],
+  "tlds": ["dev", "ai", "com"],
+  "patterns": ["exact", "hyphenated", "prefix", "suffix"],
+  "max_to_check": 100,
+  "include_unavailable": false
+}
+```
+
+### POST /v1/orders
+
+Register a domain. Protected by x402 payment.
+
+Body:
+```json
+{
+  "domain": "cool.dev",
+  "years": 1,
+  "wallet_address": "0xYourEthAddress",
+  "source_chain": "base",
+  "idempotency_key": "optional-unique-key",
+  "nameservers": ["ns1.cloudflare.com", "ns2.cloudflare.com"],
+  "registrant": {
+    "type": "individual",
+    "first_name": "Jane",
+    "last_name": "Agent",
+    "email": "jane@example.com",
+    "phone": "+12025551234",
+    "address": {
+      "street": "123 AI Street",
+      "city": "San Francisco",
+      "state": "CA",
+      "postal_code": "94105",
+      "country": "US"
+    }
+  }
+}
+```
+
+Optional fields:
+- `idempotency_key`: Unique key to prevent duplicate orders
+- `nameservers`: 2-6 custom nameservers to set at registration (e.g., Cloudflare, Route53). If omitted, registrar defaults are used. Can be changed later via PUT /v1/domains/{domain}/nameservers.
+
+First call returns HTTP 402 with payment requirements.
+Retry with PAYMENT-SIGNATURE header after signing.
+Returns HTTP 201 with order on success.
+
+### GET /v1/orders/{id}
+
+Get order status. Order IDs have format `ord_*`.
+
+Statuses: awaiting_payment, paid, processing, completed, failed, expired, credited.
+
+## Error Format
+
+All errors follow this format:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "error_code",
+    "message": "Human-readable description"
+  }
+}
+```
+
+Error codes: validation_error, domain_unavailable, rate_limited, payment_invalid, order_not_found, internal_error.
+
+Rate limiting returns HTTP 429 with `Retry-After` header and `retry_after_seconds` in body.
+
+## Registrant Schema
+
+Required for domain registration. All fields required unless marked optional.
+
+- `type`: "individual" or "organization"
+- `first_name`: string (1-100 chars)
+- `last_name`: string (1-100 chars)
+- `organization`: string (optional, max 255 chars)
+- `email`: valid email
+- `phone`: E.164 format (e.g., "+12025551234")
+- `fax`: E.164 format (optional)
+- `address.street`: string (1-255 chars)
+- `address.street2`: string (optional, max 255 chars)
+- `address.city`: string (1-100 chars)
+- `address.state`: string (1-100 chars)
+- `address.postal_code`: string (1-20 chars)
+- `address.country`: ISO 3166-1 alpha-2 (e.g., "US")
+
+## DNS & Nameservers
+
+After registering a domain, you can manage DNS records or delegate to your own DNS provider.
+
+### Recommended: Delegate to your DNS provider
+
+For full DNS control (including TXT, SPF, DKIM, DMARC), set custom nameservers to point to your preferred provider (Cloudflare, Route53, etc.):
+
+```
+PUT /v1/domains/{domain}/nameservers
+Authorization: SIWE
+Body: { "nameservers": ["ns1.cloudflare.com", "ns2.cloudflare.com"] }
+```
+
+Requires at least 2 nameservers. SIWE authentication required (wallet must match the registration wallet).
+
+### Basic DNS (convenience)
+
+For simple setups, you can manage A and CNAME records directly:
+
+```
+GET  /v1/domains/{domain}/dns          # List records
+PUT  /v1/domains/{domain}/dns          # Set records
+Body: { "records": [{ "type": "A", "name": "@", "value": "1.2.3.4" }] }
+```
+
+Note: TXT record management is not currently available via API. Use nameserver delegation for TXT records.
+
+### Get current nameservers
+
+```
+GET /v1/domains/{domain}/nameservers
+```
+
+All DNS/nameserver endpoints require SIWE authentication.
+
+## SDK
+
+npm install @agentdomains/sdk viem
+
+```typescript
+import { AgentDomains } from "@agentdomains/sdk";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount("0xPRIVATE_KEY");
+const ad = new AgentDomains({ account });
+
+// Tool discovery for LLM agents (static, no instantiation needed)
+const schema = AgentDomains.describe();
+
+// Check domain (free)
+const check = await ad.checkDomain("cool.dev");
+
+// Register domain (USDC payment handled automatically via x402)
+const order = await ad.buyDomain("cool.dev", {
+  registrant: {
+    type: "individual",
+    first_name: "Jane", last_name: "Agent",
+    email: "jane@example.com", phone: "+12025551234",
+    address: { street: "123 AI St", city: "San Francisco", state: "CA", postal_code: "94105", country: "US" }
+  }
+});
+
+// Check order status
+const status = await ad.getOrder(order.order_id);
+```
+
+To reduce registrant boilerplate, set defaults once:
+```typescript
+const ad = new AgentDomains({
+  account,
+  registrantDefaults: {
+    email: "agent@example.com", phone: "+12025551234",
+    address: { street: "123 AI St", city: "SF", state: "CA", postal_code: "94105", country: "US" }
+  }
+});
+const registrant = ad.buildRegistrant({ first_name: "Jane", last_name: "Agent" });
+const order = await ad.buyDomain("cool.dev", { registrant });
+```
+
+## Testing (Testnet Mode)
+
+Check `GET /health` to see if the API is in testnet mode (`"testnet": true`).
+
+For production (`base-mainnet`):
+- Network: Base mainnet (eip155:8453)
+- USDC: Real USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
+- Facilitator: Coinbase CDP (api.cdp.coinbase.com/platform/v2/x402)
+
+For testnet (`base-sepolia`):
+- Network: Base Sepolia (eip155:84532)
+- USDC: Testnet USDC (0x036CbD53842c5426634e7929541eC2318f3dCF7e)
+- Facilitator: x402.org/facilitator
+- Get testnet USDC: Base Sepolia faucet
+
+To test without payment, use free endpoints (no x402 required):
+- `GET /v1/domains/check?domain=example.com` - Check availability
+- `POST /v1/domains/check/bulk` - Bulk check
+- `POST /v1/domains/ideas` - Generate domain ideas
+- `GET /health` - API status and network info
+
+Self-hosting for development:
+```
+git clone https://github.com/anthropics/agent-native-domains
+cd agent-native-domains && npm install
+X402_NETWORK=base-sepolia npm run dev
+```
