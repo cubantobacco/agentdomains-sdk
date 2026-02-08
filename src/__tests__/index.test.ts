@@ -181,7 +181,7 @@ describe("AgentDomains SDK", () => {
     const registrant = client.buildRegistrant({
       first_name: "Jane",
       last_name: "Agent",
-      address: { city: "Override City" },
+      address: { city: "Override City" } as any,
     });
 
     expect(registrant.type).toBe("organization");
@@ -240,7 +240,7 @@ describe("AgentDomains SDK", () => {
       last_name: "Agent",
       organization: "Override Org",
       fax: "+12025552222",
-      address: { street2: "Override Suite" },
+      address: { street2: "Override Suite" } as any,
     });
 
     expect(registrant.type).toBe("individual");
@@ -281,7 +281,7 @@ describe("AgentDomains SDK", () => {
           last_name: base.last_name,
           email: base.email,
           phone: base.phone,
-          address: { street: base.address.street },
+          address: { street: base.address.street } as any,
         },
         missing: "address.city",
       },
@@ -291,7 +291,7 @@ describe("AgentDomains SDK", () => {
           last_name: base.last_name,
           email: base.email,
           phone: base.phone,
-          address: { street: base.address.street, city: base.address.city },
+          address: { street: base.address.street, city: base.address.city } as any,
         },
         missing: "address.state",
       },
@@ -301,7 +301,7 @@ describe("AgentDomains SDK", () => {
           last_name: base.last_name,
           email: base.email,
           phone: base.phone,
-          address: { street: base.address.street, city: base.address.city, state: base.address.state },
+          address: { street: base.address.street, city: base.address.city, state: base.address.state } as any,
         },
         missing: "address.postal_code",
       },
@@ -316,7 +316,7 @@ describe("AgentDomains SDK", () => {
             city: base.address.city,
             state: base.address.state,
             postal_code: base.address.postal_code,
-          },
+          } as any,
         },
         missing: "address.country",
       },

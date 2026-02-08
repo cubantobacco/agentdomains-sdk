@@ -44,6 +44,7 @@
     "viem": ">=2.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.0.18",
     "typescript": "^5.4.0",
     "viem": "^2.0.0",
