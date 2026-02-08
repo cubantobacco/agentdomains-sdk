@@ -64,15 +64,64 @@ Your wallet needs two things on **Base** (Coinbase L2):
 - **Bridge from Ethereum**: Use the [Base Bridge](https://bridge.base.org)
 - **For testnet**: Use the [Base Sepolia faucet](https://www.alchemy.com/faucets/base-sepolia)
 
-### Private Key
+### Signing (No Raw Private Key Required)
 
-The SDK needs a private key to sign EIP-712 payment authorizations. Use environment variables:
+The SDK needs an `EvmSigner` — anything that can sign EIP-712 typed data. Raw private keys are **one option**, not the only one.
 
-```bash
-export PRIVATE_KEY=0x...
+#### Option 1: Private Key (simplest for scripts)
+
+```typescript
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+const ad = new AgentDomains({ account });
 ```
 
-Never hardcode private keys in source code.
+#### Option 2: Coinbase CDP Wallet (no raw key exposure)
+
+Use [Coinbase CDP AgentKit](https://docs.cdp.coinbase.com/agentkit) for MPC-based signing. The private key is split across multiple parties and never fully assembled.
+
+```typescript
+import { CdpWalletProvider } from "@coinbase/agentkit";
+
+const walletProvider = await CdpWalletProvider.configureWithWallet({
+  apiKeyName: process.env.CDP_API_KEY_NAME,
+  apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY,
+  networkId: "base-mainnet",
+});
+
+const ad = new AgentDomains({
+  account: {
+    address: walletProvider.getAddress() as `0x${string}`,
+    signTypedData: (msg) => walletProvider.signTypedData(msg),
+    signMessage: (msg) => walletProvider.signMessage(msg.message),
+  },
+});
+```
+
+#### Option 3: Custom Signer (wrap any provider)
+
+Any object matching the `EvmSigner` interface works — hardware wallets, KMS, MPC services, or smart contract wallets:
+
+```typescript
+import type { EvmSigner } from "agentdomains-sdk";
+
+const customSigner: EvmSigner = {
+  address: "0xYourAddress",
+  async signTypedData({ domain, types, primaryType, message }) {
+    // Route to your signing infrastructure
+    return await yourKmsService.signEIP712(domain, types, primaryType, message);
+  },
+  async signMessage({ message }) {
+    // Optional: enables credit-first payment flow
+    return await yourKmsService.signPersonal(message);
+  },
+};
+
+const ad = new AgentDomains({ account: customSigner });
+```
+
+> **Note:** `signMessage` is optional. If provided, the SDK will attempt credit-based payment (SIWE wallet proof) before falling back to x402.
 
 ## For AI Agents
 
