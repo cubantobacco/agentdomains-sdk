@@ -1,11 +1,11 @@
 /**
- * @agentdomains/sdk
+ * agentdomains-sdk
  *
  * TypeScript SDK for Agent Native Domains.
  * Register domains programmatically with USDC payments via the x402 protocol.
  *
  * Usage:
- *   import { AgentDomains } from "@agentdomains/sdk";
+ *   import { AgentDomains } from "agentdomains-sdk";
  *   import { privateKeyToAccount } from "viem/accounts";
  *
  *   const account = privateKeyToAccount("0x...");

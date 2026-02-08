@@ -1,17 +1,17 @@
-# @agentdomains/sdk
+# agentdomains-sdk
 
 TypeScript SDK for [Agent Native Domains](https://api.agentdomains.ai) — register domains programmatically with USDC payments via the x402 protocol.
 
 ## Install
 
 ```bash
-npm install @agentdomains/sdk viem
+npm install agentdomains-sdk viem
 ```
 
 ## Quick Start
 
 ```typescript
-import { AgentDomains } from "@agentdomains/sdk";
+import { AgentDomains } from "agentdomains-sdk";
 import { privateKeyToAccount } from "viem/accounts";
 
 // 1. Set up account
@@ -215,7 +215,7 @@ const status = await ad.getOrder("ord_abc123");
 ## Error Handling
 
 ```typescript
-import { AgentDomainsError } from "@agentdomains/sdk";
+import { AgentDomainsError } from "agentdomains-sdk";
 
 try {
   await ad.buyDomain("taken.com", { registrant });

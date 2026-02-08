@@ -1,5 +1,5 @@
 {
-  "name": "@agentdomains/sdk",
+  "name": "agentdomains-sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for Agent Native Domains — register domains with USDC via x402",
   "type": "module",

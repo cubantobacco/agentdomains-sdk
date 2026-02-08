@@ -213,10 +213,10 @@ All DNS/nameserver endpoints require SIWE authentication.
 
 ## SDK
 
-npm install @agentdomains/sdk viem
+npm install agentdomains-sdk viem
 
 ```typescript
-import { AgentDomains } from "@agentdomains/sdk";
+import { AgentDomains } from "agentdomains-sdk";
 import { privateKeyToAccount } from "viem/accounts";
 
 const account = privateKeyToAccount("0xPRIVATE_KEY");
