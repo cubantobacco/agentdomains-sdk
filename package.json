@@ -17,6 +17,9 @@
   ],
   "scripts": {
     "build": "tsc",
+    "test": "vitest run",
+    "test:coverage": "vitest run src/__tests__/index.test.ts --coverage --coverage.include=src/index.ts --coverage.reporter=text --coverage.reporter=json-summary",
+    "test:coverage:gate": "npm run test:coverage && node scripts/check-coverage.mjs",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -41,7 +44,9 @@
     "viem": ">=2.0.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
     "typescript": "^5.4.0",
-    "viem": "^2.0.0"
+    "viem": "^2.0.0",
+    "vitest": "^4.0.18"
   }
 }

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test with coverage gate
+        env:
+          SDK_COVERAGE_LINES: "100"
+          SDK_COVERAGE_STATEMENTS: "100"
+          SDK_COVERAGE_BRANCHES: "100"
+          SDK_COVERAGE_FUNCTIONS: "100"
+          SDK_COVERAGE_FILE: "src/index.ts"
+        run: npm run test:coverage:gate
